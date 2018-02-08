@@ -53,20 +53,35 @@ class TermCss():
     def fromString(cls, str):
         return cls(cssutils.parseString(str))
 
-    def compile(self, str):
+    def compile(self, format):
 
-        styled_str = []
-        for (text, name, spec, conv) in string.Formatter().parse(str):
-            if name:
-                (seq, reset) = self.sequence(name)
-                styled_str.append(text + seq + "{" + name + "}" + reset)
+        def _impl(format):
+            if isinstance(format, list):
+                exp = [_impl(f) for f in format]
+                log.d(exp)
+                styled_str = "|".join(exp)
+                log.d(styled_str)
+                return styled_str
+
             else:
-                styled_str.append(text)
+                styled_str = []
+                for (text, name, spec, conv) in string.Formatter().parse(format):
+                    if name:
+                        (seq, reset) = self.sequence(name)
+                        styled_str.append(text + seq + "{" + name + "}" + reset)
+                    else:
+                        styled_str.append(text)
+                styled_str = "".join(styled_str)
+                log.d(styled_str)
+                return styled_str
 
-        styled_str = "".join(styled_str)
-        log.d(styled_str)
+        log.d(format)
+        styled_str = _impl(format)
 
-        return lambda obj: styled_str.format(**obj)
+        def apply(obj):
+            return styled_str.format(**obj)
+
+        return apply
 
     def sequence(self, name):
         buf = []
